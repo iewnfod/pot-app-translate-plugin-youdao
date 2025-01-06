@@ -1,6 +1,36 @@
+function Request(options) {
+    return new Promise((reslove, reject) => GM_xmlhttpRequest({ ...options, onload: reslove, onerror: reject }));
+}
+
+async function getSecretKey() {
+    const ts = "" + (new Date).getTime();
+    const params = {
+        keyid: "webfanyi-key-getter",
+        client: "fanyideskweb",
+        product: "webfanyi",
+        appVersion: "1.0.0",
+        vendor: "web",
+        pointParam: "client,mysticTime,product",
+        mysticTime: ts,
+        keyfrom: "fanyi.web",
+        sign: CryptoJS.MD5(`client=fanyideskweb&mysticTime=${ts}&product=webfanyi&key=asdjnjfenknafdfsdfsd`)
+    }
+    const options = {
+        method: "GET",
+        url: `https://dict.youdao.com/webtranslate/key?${Object.entries(params).map(item => item.join('=')).join('&')}`,
+        headers: {
+            "Origin": "https://fanyi.youdao.com"
+        }
+    }
+    const res = await Request(options);
+    return JSON.parse(res.responseText).data.secretKey;
+}
+
 async function translate(text, from, to, options) {
     const { utils } = options;
     const { tauriFetch: fetch, CryptoJS } = utils;
+
+    const secretKey = await getSecretKey();
 
     const URL = "https://dict.youdao.com/webtranslate";
 
@@ -12,7 +42,7 @@ async function translate(text, from, to, options) {
     form.append("to", to);
     form.append("dictResult", true);
     form.append("keyid", "webfanyi");
-    form.append("sign", CryptoJS.MD5(`client=fanyideskweb&mysticTime=${mysticTime}&product=webfanyi&key=Vy4EQ1uwPkUoqvcP1nIu6WiAjxFeA3YW`).toString(CryptoJS.enc.Hex));
+    form.append("sign", CryptoJS.MD5(`client=fanyideskweb&mysticTime=${mysticTime}&product=webfanyi&key=${secretKey}`).toString(CryptoJS.enc.Hex));
     form.append("client", "fanyideskweb");
     form.append("product", "webfanyi");
     form.append("appVersion", "1.0.0");
